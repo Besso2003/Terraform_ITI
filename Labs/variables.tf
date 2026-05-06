@@ -36,14 +36,30 @@ variable "app_ami" {
 
 variable "public_subnets" {
   type = list(object({
-    name = string
-    cidr = string
+    name               = string
+    cidr               = string
+    availability_zone = string
   }))
 }
 
 variable "private_subnets" {
   type = list(object({
-    name = string
-    cidr = string
+    name               = string
+    cidr               = string
+    availability_zone = string
   }))
 }
+
+variable "db_username" {
+  type = string
+}
+
+variable "db_password" {
+  type = string
+  sensitive = true
+}
+
+variable "db_name" {
+  type = string
+}
+
