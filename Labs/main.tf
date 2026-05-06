@@ -14,3 +14,11 @@ module "rds" {
   app_security_group_id = aws_security_group.app_sg.id
   vpc_id = module.network.vpc_id
 }
+
+module "redis" {
+  source = "./elasticache"
+
+  vpc_id     = module.network.vpc_id
+  subnet_ids = values(module.network.private_subnet_ids)
+  app_security_group_id = aws_security_group.app_sg.id
+}
