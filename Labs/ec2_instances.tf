@@ -7,6 +7,10 @@ resource "aws_instance" "bastion" {
   tags = {
     Name = var.bastion_name
   }
+
+  provisioner "local-exec" {
+    command = "echo ${self.public_ip}"
+  }
 }
 
 resource "aws_instance" "app" {
@@ -17,5 +21,9 @@ resource "aws_instance" "app" {
 
   tags = {
     Name = var.app_name
+  }
+
+  provisioner "local-exec" {
+    command = "echo ${self.private_ip}"
   }
 }
