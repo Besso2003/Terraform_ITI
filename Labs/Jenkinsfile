@@ -16,9 +16,7 @@ pipeline {
                         [$class: 'AmazonWebServicesCredentialsBinding',
                          credentialsId: 'aws-creds']
                     ]) {
-                        sh '''
-                            terraform init
-                        '''
+                        sh 'terraform init'
                     }
                 }
             }
@@ -32,10 +30,7 @@ pipeline {
                          credentialsId: 'aws-creds'],
                         file(credentialsId: 'prod-tfvars', variable: 'TFVARS')
                     ]) {
-                        sh '''
-                            cp $TFVARS prod.tfvars
-                            terraform plan -var-file=prod.tfvars
-                        '''
+                        sh 'terraform plan -var-file=$TFVARS'
                     }
                 }
             }
@@ -43,16 +38,14 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
+                input message: "Approve Apply?"
                 dir('Labs') {
                     withCredentials([
                         [$class: 'AmazonWebServicesCredentialsBinding',
                          credentialsId: 'aws-creds'],
                         file(credentialsId: 'prod-tfvars', variable: 'TFVARS')
                     ]) {
-                        sh '''
-                            cp $TFVARS prod.tfvars
-                            terraform apply -auto-approve -var-file=prod.tfvars
-                        '''
+                        sh 'terraform apply -auto-approve -var-file=$TFVARS'
                     }
                 }
             }
