@@ -29,7 +29,8 @@ pipeline {
                 dir('Labs') {
                     withCredentials([
                         [$class: 'AmazonWebServicesCredentialsBinding',
-                         credentialsId: 'aws-creds']
+                         credentialsId: 'aws-creds',
+                         file(credentialsId: 'prod-tfvars', variable: 'TFVARS')]
                     ]) {
                         sh '''
                             cp $TFVARS prod.tfvars
@@ -45,7 +46,10 @@ pipeline {
                 dir('Labs') {
                     withCredentials([
                         [$class: 'AmazonWebServicesCredentialsBinding',
-                         credentialsId: 'aws-creds']
+                         credentialsId: 'aws-creds'],
+                        [$class: 'FileBinding',
+                         credentialsId: 'prod-tfvars',
+                         variable: 'TFVARS']
                     ]) {
                         sh '''
                             cp $TFVARS prod.tfvars
