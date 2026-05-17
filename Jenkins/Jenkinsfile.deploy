@@ -32,7 +32,8 @@ pipeline {
                         sh '''
                             unset AWS_PROFILE
                             unset AWS_DEFAULT_PROFILE
-                            terraform init
+                            terraform init -reconfigure \
+                              -backend-config="key=${params.ENV}/terraform.tfstate"
                         '''
                     }
                 }
@@ -65,8 +66,10 @@ pipeline {
                             sh '''
                                 unset AWS_PROFILE
                                 unset AWS_DEFAULT_PROFILE
-                                terraform plan -var-file=$TFVARS_FILE
+                                terraform plan -var-file=$TFVARS_FILE -out=tfplan -input=false
+                                terraform show -no-color tfplan > tfplan.txt
                             '''
+                            archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
                         }
                     }
                 }
@@ -75,30 +78,36 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                input message: "Approve deployment for ${params.ENV}?"
+                script {
+                    def plan = readFile("${TF_DIR}/tfplan.txt")
+                    input message: "Approve deployment for ${params.ENV}?\n\n${plan.take(2000)}"
+                }
 
                 dir("${TF_DIR}") {
-
-                    script {
-                        def tfvarsCred = (params.ENV == 'dev')
-                            ? 'dev-tfvars'
-                            : 'prod-tfvars'
-
-                        withCredentials([
-                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
-                            [$class: 'AmazonWebServicesCredentialsBinding',
-                             credentialsId: 'aws-creds']
-                        ]) {
-
-                            sh '''
-                                unset AWS_PROFILE
-                                unset AWS_DEFAULT_PROFILE
-                                terraform apply -auto-approve -var-file=$TFVARS_FILE
-                            '''
-                        }
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                         credentialsId: 'aws-creds']
+                    ]) {
+                        sh '''
+                            unset AWS_PROFILE
+                            unset AWS_DEFAULT_PROFILE
+                            terraform apply -auto-approve -input=false tfplan
+                        '''
                     }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment pipeline completed successfully for ${params.ENV}."
+        }
+        failure {
+            echo "❌ Deployment pipeline failed. Check the console output for details."
+        }
+        always {
+            cleanWs()
         }
     }
 }

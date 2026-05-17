@@ -15,6 +15,7 @@ crash.log
 # Sensitive files
 *.pem
 *.key
+Terraform/lambda/lambda.zip
 
 # OS/editor files
 .vscode/

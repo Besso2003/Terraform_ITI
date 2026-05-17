@@ -101,4 +101,16 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            echo "✅ Destroy pipeline completed successfully for ${params.ENV}."
+        }
+        failure {
+            echo "❌ Destroy pipeline failed. Check the console output for details."
+        }
+        always {
+            cleanWs()
+        }
+    }
 }

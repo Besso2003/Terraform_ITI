@@ -3,7 +3,7 @@ output "region" {
 }
 
 output "vpc_cidr" {
-  value = module.network.vpc_id
+  value = module.network.vpc_cidr
 }
 
 output "environment" {
