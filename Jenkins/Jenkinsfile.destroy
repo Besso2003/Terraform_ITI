@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ENV',
+            choices: ['dev', 'prod'],
+            description: 'Choose environment to destroy'
+        )
+    }
+
+    environment {
+        TF_DIR = 'Labs'
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/Besso2003/Terraform_ITI.git'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir("${TF_DIR}") {
+
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds']
+                    ]) {
+
+                        sh 'terraform init'
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+
+                input message: "WARNING: Destroy ${params.ENV} infrastructure?"
+
+                dir("${TF_DIR}") {
+
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds']
+                    ]) {
+
+                        sh """
+                        terraform destroy -auto-approve \
+                        -var-file=${params.ENV}.tfvars
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
