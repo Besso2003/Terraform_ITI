@@ -9,3 +9,7 @@ output "vpc_cidr" {
 output "environment" {
   value = var.environment
 }
+
+output "alb_dns_name" {
+  value = aws_lb.app.dns_name
+}
