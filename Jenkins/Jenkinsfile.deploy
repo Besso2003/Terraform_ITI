@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         TF_DIR = 'Terraform'
+        AWS_PROFILE = ""
     }
 
     parameters {
@@ -24,7 +25,16 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir("${TF_DIR}") {
-                    sh 'terraform init'
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding',
+                         credentialsId: 'aws-creds']
+                    ]) {
+                        sh '''
+                            unset AWS_PROFILE
+                            unset AWS_DEFAULT_PROFILE
+                            terraform init
+                        '''
+                    }
                 }
             }
         }
@@ -52,9 +62,11 @@ pipeline {
                              credentialsId: 'aws-creds']
                         ]) {
 
-                            sh """
+                            sh '''
+                                unset AWS_PROFILE
+                                unset AWS_DEFAULT_PROFILE
                                 terraform plan -var-file=$TFVARS_FILE
-                            """
+                            '''
                         }
                     }
                 }
@@ -78,9 +90,11 @@ pipeline {
                              credentialsId: 'aws-creds']
                         ]) {
 
-                            sh """
+                            sh '''
+                                unset AWS_PROFILE
+                                unset AWS_DEFAULT_PROFILE
                                 terraform apply -auto-approve -var-file=$TFVARS_FILE
-                            """
+                            '''
                         }
                     }
                 }
