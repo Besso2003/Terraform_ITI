@@ -24,12 +24,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds']
-                    ]) {
-                        sh 'terraform init'
-                    }
+                    sh 'terraform init'
                 }
             }
         }
@@ -45,13 +40,22 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds']
-                    ]) {
-                        sh """
-                        terraform plan -var-file=${params.ENV}.tfvars
-                        """
+
+                    script {
+                        def tfvarsCred = (params.ENV == 'dev')
+                            ? 'dev-tfvars'
+                            : 'prod-tfvars'
+
+                        withCredentials([
+                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
+                            [$class: 'AmazonWebServicesCredentialsBinding',
+                             credentialsId: 'aws-creds']
+                        ]) {
+
+                            sh """
+                                terraform plan -var-file=$TFVARS_FILE
+                            """
+                        }
                     }
                 }
             }
@@ -62,13 +66,22 @@ pipeline {
                 input message: "Approve deployment for ${params.ENV}?"
 
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds']
-                    ]) {
-                        sh """
-                        terraform apply -auto-approve -var-file=${params.ENV}.tfvars
-                        """
+
+                    script {
+                        def tfvarsCred = (params.ENV == 'dev')
+                            ? 'dev-tfvars'
+                            : 'prod-tfvars'
+
+                        withCredentials([
+                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
+                            [$class: 'AmazonWebServicesCredentialsBinding',
+                             credentialsId: 'aws-creds']
+                        ]) {
+
+                            sh """
+                                terraform apply -auto-approve -var-file=$TFVARS_FILE
+                            """
+                        }
                     }
                 }
             }
