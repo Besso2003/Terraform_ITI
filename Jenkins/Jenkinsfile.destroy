@@ -80,7 +80,7 @@ pipeline {
                         sh '''
                             unset AWS_PROFILE
                             unset AWS_DEFAULT_PROFILE
-                            terraform destroy -auto-approve -input=false tfplan
+                            terraform apply -auto-approve -input=false tfplan
                         '''
                     }
                 }
