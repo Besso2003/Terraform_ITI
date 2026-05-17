@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        TF_DIR = 'Terraform'
+    }
+
     parameters {
         choice(
             name: 'ENV',
@@ -9,49 +13,89 @@ pipeline {
         )
     }
 
-    environment {
-        TF_DIR = 'Labs'
-    }
-
     stages {
 
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/Besso2003/Terraform_ITI.git'
+                checkout scm
             }
         }
 
         stage('Terraform Init') {
             steps {
                 dir("${TF_DIR}") {
-
                     withCredentials([
                         [$class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds']
+                         credentialsId: 'aws-creds']
                     ]) {
 
-                        sh 'terraform init'
+                        sh '''
+                            unset AWS_PROFILE
+                            unset AWS_DEFAULT_PROFILE
+                            terraform init
+                        '''
                     }
                 }
             }
         }
 
-        stage('Terraform Destroy') {
+        stage('Terraform Validate') {
             steps {
+                dir("${TF_DIR}") {
+                    sh 'terraform validate'
+                }
+            }
+        }
 
-                input message: "WARNING: Destroy ${params.ENV} infrastructure?"
+        stage('Terraform Destroy Plan (Optional but recommended)') {
+            steps {
+                dir("${TF_DIR}") {
+
+                    script {
+                        def tfvarsCred = (params.ENV == 'dev')
+                            ? 'dev-tfvars'
+                            : 'prod-tfvars'
+
+                        withCredentials([
+                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
+                            [$class: 'AmazonWebServicesCredentialsBinding',
+                             credentialsId: 'aws-creds']
+                        ]) {
+
+                            sh '''
+                                unset AWS_PROFILE
+                                unset AWS_DEFAULT_PROFILE
+                                terraform plan -destroy -var-file=$TFVARS_FILE
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('DESTROY - FINAL APPROVAL') {
+            steps {
+                input message: "⚠️ CONFIRM DESTROY for ${params.ENV}? This cannot be undone!"
 
                 dir("${TF_DIR}") {
 
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds']
-                    ]) {
+                    script {
+                        def tfvarsCred = (params.ENV == 'dev')
+                            ? 'dev-tfvars'
+                            : 'prod-tfvars'
 
-                        sh """
-                        terraform destroy -auto-approve \
-                        -var-file=${params.ENV}.tfvars
-                        """
+                        withCredentials([
+                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
+                            [$class: 'AmazonWebServicesCredentialsBinding',
+                             credentialsId: 'aws-creds']
+                        ]) {
+
+                            sh '''
+                                unset AWS_PROFILE
+                                unset AWS_DEFAULT_PROFILE
+                                terraform destroy -auto-approve -var-file=$TFVARS_FILE
+                            '''
+                        }
                     }
                 }
             }
