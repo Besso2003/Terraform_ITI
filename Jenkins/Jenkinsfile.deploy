@@ -57,12 +57,12 @@ pipeline {
                              credentialsId: 'aws-creds']
                         ]) {
 
-                            sh """
+                            sh '''
                                 unset AWS_PROFILE
                                 unset AWS_DEFAULT_PROFILE
                                 terraform plan -var-file=$TFVARS_FILE -out=tfplan -input=false
                                 terraform show -no-color tfplan > tfplan.txt
-                            """
+                            '''
                             archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
                         }
                     }
@@ -82,11 +82,11 @@ pipeline {
                         [$class: 'AmazonWebServicesCredentialsBinding',
                          credentialsId: 'aws-creds']
                     ]) {
-                        sh """
+                        sh '''
                             unset AWS_PROFILE
                             unset AWS_DEFAULT_PROFILE
                             terraform apply -auto-approve -input=false tfplan
-                        """
+                        '''
                     }
                 }
             }
