@@ -5,6 +5,7 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_lambda_function" "send_email" {
+  provider = aws.backend
 
   function_name = "send-email-lambda"
 
