@@ -1,6 +1,6 @@
 resource "aws_lambda_permission" "allow_s3" {
   provider       = aws.backend
-  statement_id   = "AllowS3Invoke"
+  statement_id  = "AllowS3Invoke-${var.environment}" 
   action         = "lambda:InvokeFunction"
   function_name  = aws_lambda_function.send_email.function_name
   principal      = "s3.amazonaws.com"
