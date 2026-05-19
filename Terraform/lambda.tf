@@ -6,8 +6,8 @@ data "archive_file" "lambda_zip" {
 
 resource "aws_lambda_function" "send_email" {
   provider = aws.backend
-
-  function_name = "send-email-lambda"
+  
+  function_name = "send-email-lambda-${var.environment}"
 
   role = data.aws_iam_role.lambda_role.arn
 
