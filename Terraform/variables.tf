@@ -2,6 +2,11 @@ variable "aws_region" {
   type = string
 }
 
+variable "backend_region" {
+  type    = string
+  default = "eu-north-1"
+}
+
 variable "vpc_cidr" {
   type = string
 }
