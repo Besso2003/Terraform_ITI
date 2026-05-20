@@ -6,3 +6,4 @@ ${app_ip}
 
 [app:vars]
 ansible_ssh_common_args='-F ./ssh.cfg'
+ansible_python_interpreter=/usr/bin/python3

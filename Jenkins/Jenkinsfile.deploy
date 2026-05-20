@@ -107,22 +107,29 @@ pipeline {
         }
         stage('Configure EC2 with Ansible') {
             steps {
-                dir("${TF_DIR}/../Ansible") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds']
-                        ]) {
-                            sh '''echo "Testing Ansible connectivity to app server"
-                            
-                            ansible app -i inventory.ini -m ping
-                            '''
+                script {
+                    dir("${TF_DIR}") {
+                        // Get Jenkins URL from Terraform output
+                        def jenkinsUrl = sh(
+                            script: "terraform output -raw jenkins_url",
+                            returnStdout: true
+                        ).trim()
 
-                            // sh '''
-                            //    echo "Running Ansible playbook for Jenkins agent setup"
-                               
-                            //    ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
-                            // '''
+                        dir("../Ansible") {
+                            withCredentials([
+                                string(credentialsId: 'jenkins-agent-secret', variable: 'JENKINS_SECRET')
+                                ]) {
+                                    sh """
+                                    echo "Testing connectivity..."
+                                    ansible app -i inventory.ini -m ping
+                                    
+                                    echo "Running Ansible playbook..."
+                                    ansible-playbook -i inventory.ini playbook-jenkins-agent.yml \
+                                    --extra-vars "jenkins_url=${jenkinsUrl} jenkins_secret=$JENKINS_SECRET"
+                                    """
+                                }
                         }
+                    }
                 }
             }
         }
