@@ -117,7 +117,7 @@ pipeline {
 
                         dir("${TF_DIR}") {
 
-                            def jenkinsUrl = "http://192.168.1.230:8080"
+                            def jenkinsUrl = "https://squiggly-module-washhouse.ngrok-free.dev"
 
                             dir("../Ansible") {
 
