@@ -97,10 +97,31 @@ pipeline {
                     sh '''
                        echo "=== ANSIBLE GENERATED FILES ==="
                        ls -R ../Ansible || true
+                       
+                       echo "Checking Ansible output..."
+                       cat ../Ansible/inventory.ini
+                       cat ../Ansible/ssh.cfg
                     '''
+                    }
+            }
         }
-    }
-}
+        // stage('Configure EC2 with Ansible') {
+        //     steps {
+        //         dir("${TF_DIR}/../Ansible") {
+        //             withCredentials([
+        //                 [$class: 'AmazonWebServicesCredentialsBinding',
+        //                 credentialsId: 'aws-creds']
+        //                 ]) {
+        //                     sh '''
+        //                        echo "Running Ansible playbook for Jenkins agent setup"
+                               
+        //                        ansible-playbook -i ../Terraform/inventory.ini playbook-jenkins-agent.yml \
+        //                        --ssh-common-args='-F ../Terraform/ssh.cfg'
+        //                     '''
+        //                 }
+        //         }
+        //     }
+        // }
     }
 
     post {
