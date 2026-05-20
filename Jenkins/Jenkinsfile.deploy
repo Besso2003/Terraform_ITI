@@ -106,33 +106,37 @@ pipeline {
             }
         }
         stage('Configure EC2 with Ansible') {
-            steps {
-                script {
-                    dir("${TF_DIR}") {
-                        // Get Jenkins URL from Terraform output
-                        def jenkinsUrl = sh(
-                            script: "terraform output -raw jenkins_url",
-                            returnStdout: true
-                        ).trim()
+    steps {
+        script {
+            withCredentials([
+                [$class: 'AmazonWebServicesCredentialsBinding',
+                 credentialsId: 'aws-creds']
+            ]) {
 
-                        dir("../Ansible") {
-                            withCredentials([
-                                string(credentialsId: 'jenkins-agent-secret', variable: 'JENKINS_SECRET')
-                                ]) {
-                                    sh """
-                                    echo "Testing connectivity..."
-                                    ansible app -i inventory.ini -m ping
-                                    
-                                    echo "Running Ansible playbook..."
-                                    ansible-playbook -i inventory.ini playbook-jenkins-agent.yml \
-                                    --extra-vars "jenkins_url=${jenkinsUrl} jenkins_secret=$JENKINS_SECRET"
-                                    """
-                                }
+                dir("${TF_DIR}") {
+                    def jenkinsUrl = "http://192.168.1.230:8080"
+
+                    dir("../Ansible") {
+                        withCredentials([
+                            string(credentialsId: 'jenkins-agent-secret', variable: 'JENKINS_SECRET')
+                        ]) {
+
+                            sh """
+                                echo "Testing connectivity..."
+                                ansible app -i inventory.ini -m ping
+
+                                echo "Running Ansible playbook..."
+                                ansible-playbook -i inventory.ini playbook-jenkins-agent.yml \
+                                --extra-vars "jenkins_url=${jenkinsUrl} jenkins_secret=${JENKINS_SECRET}"
+                            """
                         }
                     }
                 }
             }
         }
+    }
+}
+}
     }
 
     post {
