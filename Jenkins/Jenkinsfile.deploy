@@ -91,6 +91,16 @@ pipeline {
                 }
             }
         }
+        stage('Verify Ansible Files') {
+            steps {
+                dir("${TF_DIR}") {
+                    sh '''
+                       echo "=== ANSIBLE GENERATED FILES ==="
+                       ls -R ../Ansible || true
+                    '''
+        }
+    }
+}
     }
 
     post {
