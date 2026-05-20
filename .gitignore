@@ -22,3 +22,7 @@ Terraform/lambda/lambda.zip
 .idea/
 *.swp
 .DS_Store
+
+# Ansible files
+Ansible/inventory.ini
+Ansible/ssh.cfg
