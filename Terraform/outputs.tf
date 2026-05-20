@@ -20,7 +20,3 @@ output "bastion_public_ip" {
 output "app_private_ip" {
   value = aws_instance.app.private_ip
 }
-
-output "jenkins_url" {
-  value = "http://localhost:8080"
-}
