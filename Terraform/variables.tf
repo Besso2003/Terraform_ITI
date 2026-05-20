@@ -73,3 +73,8 @@ variable "db_name" {
   type = string
 }
 
+variable "public_key_path" {
+  type        = string
+  description = "Path to the public key file"
+}
+
