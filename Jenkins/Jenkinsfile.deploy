@@ -45,25 +45,20 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir("${TF_DIR}") {
-
                     script {
-                        def tfvarsCred = (params.ENV == 'dev')
-                            ? 'dev-tfvars'
-                            : 'prod-tfvars'
+                        def tfvarsCred = (params.ENV == 'dev') ? 'dev-tfvars' : 'prod-tfvars'
 
                         withCredentials([
                             file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
                             [$class: 'AmazonWebServicesCredentialsBinding',
                              credentialsId: 'aws-creds']
                         ]) {
-
                             sh '''
                                 unset AWS_PROFILE
                                 unset AWS_DEFAULT_PROFILE
                                 terraform plan -var-file=$TFVARS_FILE -out=tfplan -input=false
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
-
                             archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
                         }
                     }
@@ -77,7 +72,6 @@ pipeline {
                     def plan = readFile("${TF_DIR}/tfplan.txt")
                     input message: "Approve deployment for ${params.ENV}?\n\n${plan.take(2000)}"
                 }
-
                 dir("${TF_DIR}") {
                     withCredentials([
                         [$class: 'AmazonWebServicesCredentialsBinding',
@@ -99,8 +93,6 @@ pipeline {
                     sh '''
                         echo "=== ANSIBLE GENERATED FILES ==="
                         ls -R ../Ansible || true
-
-                        echo "Checking Ansible output..."
                         cat ../Ansible/inventory.ini
                         cat ../Ansible/ssh.cfg
                     '''
@@ -108,33 +100,31 @@ pipeline {
             }
         }
 
-        stage('Configure EC2 with Ansible') {
-            steps {
-                script {
-                    withCredentials([
-                        string(credentialsId: 'jenkins-agent-secret', variable: 'JENKINS_SECRET')
-                    ]) {
+        // stage('Configure EC2 with Ansible') {
+        //     steps {
+        //         dir("Ansible") {
+        //             withCredentials([
+        //                 sshUserPrivateKey(
+        //                     credentialsId: 'ec2-ssh-key',
+        //                     keyFileVariable: 'SSH_KEY'
+        //                 )
+        //             ]) {
+        //                 sh '''
+        //                     # Put the key where ssh.cfg expects it
+        //                     mkdir -p ~/.ssh
+        //                     cp $SSH_KEY ~/.ssh/bastion-key
+        //                     chmod 600 ~/.ssh/bastion-key
 
-                        dir("${TF_DIR}") {
+        //                     echo "Testing connectivity..."
+        //                     ansible app -i inventory.ini -m ping
 
-                            def jenkinsUrl = "https://squiggly-module-washhouse.ngrok-free.dev"
-
-                            dir("../Ansible") {
-
-                                sh """
-                                    echo "Testing connectivity..."
-                                    ansible app -i inventory.ini -m ping
-
-                                    echo "Running Ansible playbook..."
-                                    ansible-playbook -i inventory.ini playbook-jenkins-agent.yml \
-                                    --extra-vars "jenkins_url=${jenkinsUrl} jenkins_secret=${JENKINS_SECRET}"
-                                """
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        //                     echo "Running Ansible playbook..."
+        //                     ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
+        //                 '''
+        //             }
+        //         }
+        //     }
+        // }
     }
 
     post {
