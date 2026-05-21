@@ -78,3 +78,10 @@ variable "public_key_path" {
   description = "Path to the public key file"
 }
 
+variable "jenkins_ami" { 
+  type = string 
+}
+
+variable "jenkins_instance_type" { 
+  type = string 
+}

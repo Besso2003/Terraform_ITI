@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        TF_DIR = 'Terraform'
+        TF_DIR = 'Terraform/infra'
     }
 
     parameters {
@@ -14,22 +14,14 @@ pipeline {
     }
 
     stages {
-        // ❌ No Checkout stage here
 
         stage('Terraform Init') {
             steps {
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                         credentialsId: 'aws-creds']
-                    ]) {
-                        sh """
-                            unset AWS_PROFILE
-                            unset AWS_DEFAULT_PROFILE
-                            terraform init -reconfigure \
-                              -backend-config="key=${params.ENV}/terraform.tfstate"
-                        """
-                    }
+                    sh """
+                        terraform init -reconfigure \
+                          -backend-config="key=${params.ENV}/terraform.tfstate"
+                    """
                 }
             }
         }
@@ -47,16 +39,14 @@ pipeline {
                 dir("${TF_DIR}") {
                     script {
                         def tfvarsCred = (params.ENV == 'dev') ? 'dev-tfvars' : 'prod-tfvars'
+
                         withCredentials([
-                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
-                            [$class: 'AmazonWebServicesCredentialsBinding',
-                             credentialsId: 'aws-creds']
+                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE')
                         ]) {
                             sh '''
-                                unset AWS_PROFILE
-                                unset AWS_DEFAULT_PROFILE
                                 terraform plan -destroy -var-file=$TFVARS_FILE \
                                   -out=tfplan -input=false
+
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
                             archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
@@ -70,19 +60,13 @@ pipeline {
             steps {
                 script {
                     def plan = readFile("${TF_DIR}/tfplan.txt")
-                    input message: "⚠️ CONFIRM DESTROY for ${params.ENV}? This cannot be undone!\n\n${plan.take(2000)}"
+                    input message: "⚠️ CONFIRM DESTROY for ${params.ENV}? This action is irreversible!\n\n${plan.take(2000)}"
                 }
+
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                         credentialsId: 'aws-creds']
-                    ]) {
-                        sh '''
-                            unset AWS_PROFILE
-                            unset AWS_DEFAULT_PROFILE
-                            terraform apply -auto-approve -input=false tfplan
-                        '''
-                    }
+                    sh '''
+                        terraform apply -auto-approve -input=false tfplan
+                    '''
                 }
             }
         }

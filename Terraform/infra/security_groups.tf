@@ -15,3 +15,12 @@ resource "aws_security_group" "app_sg" {
     Name = "app-sg"
   }
 }
+
+resource "aws_security_group" "jenkins_sg" {
+  name   = "jenkins-sg"
+  vpc_id = module.network.vpc_id
+  
+  tags   = { 
+    Name = "jenkins-sg" 
+  }
+}

@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        TF_DIR = 'Terraform'
-        AWS_PROFILE = ""
+        TF_DIR = 'Terraform/infra'
     }
 
     parameters {
@@ -19,17 +18,10 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                         credentialsId: 'aws-creds']
-                    ]) {
-                        sh """
-                            unset AWS_PROFILE
-                            unset AWS_DEFAULT_PROFILE
-                            terraform init -reconfigure \
-                              -backend-config="key=${params.ENV}/terraform.tfstate"
-                        """
-                    }
+                    sh """
+                        terraform init -reconfigure \
+                          -backend-config="key=${params.ENV}/terraform.tfstate"
+                    """
                 }
             }
         }
@@ -49,13 +41,9 @@ pipeline {
                         def tfvarsCred = (params.ENV == 'dev') ? 'dev-tfvars' : 'prod-tfvars'
 
                         withCredentials([
-                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE'),
-                            [$class: 'AmazonWebServicesCredentialsBinding',
-                             credentialsId: 'aws-creds']
+                            file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE')
                         ]) {
                             sh '''
-                                unset AWS_PROFILE
-                                unset AWS_DEFAULT_PROFILE
                                 terraform plan -var-file=$TFVARS_FILE -out=tfplan -input=false
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
@@ -72,17 +60,11 @@ pipeline {
                     def plan = readFile("${TF_DIR}/tfplan.txt")
                     input message: "Approve deployment for ${params.ENV}?\n\n${plan.take(2000)}"
                 }
+
                 dir("${TF_DIR}") {
-                    withCredentials([
-                        [$class: 'AmazonWebServicesCredentialsBinding',
-                         credentialsId: 'aws-creds']
-                    ]) {
-                        sh '''
-                            unset AWS_PROFILE
-                            unset AWS_DEFAULT_PROFILE
-                            terraform apply -auto-approve -input=false tfplan
-                        '''
-                    }
+                    sh '''
+                        terraform apply -auto-approve -input=false tfplan
+                    '''
                 }
             }
         }
@@ -93,38 +75,13 @@ pipeline {
                     sh '''
                         echo "=== ANSIBLE GENERATED FILES ==="
                         ls -R ../Ansible || true
-                        cat ../Ansible/inventory.ini
-                        cat ../Ansible/ssh.cfg
+                        cat ../Ansible/inventory.ini || true
+                        cat ../Ansible/ssh.cfg || true
                     '''
                 }
             }
         }
 
-        // stage('Configure EC2 with Ansible') {
-        //     steps {
-        //         dir("Ansible") {
-        //             withCredentials([
-        //                 sshUserPrivateKey(
-        //                     credentialsId: 'ec2-ssh-key',
-        //                     keyFileVariable: 'SSH_KEY'
-        //                 )
-        //             ]) {
-        //                 sh '''
-        //                     # Put the key where ssh.cfg expects it
-        //                     mkdir -p ~/.ssh
-        //                     cp $SSH_KEY ~/.ssh/bastion-key
-        //                     chmod 600 ~/.ssh/bastion-key
-
-        //                     echo "Testing connectivity..."
-        //                     ansible app -i inventory.ini -m ping
-
-        //                     echo "Running Ansible playbook..."
-        //                     ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
-        //                 '''
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     post {
