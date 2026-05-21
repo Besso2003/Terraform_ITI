@@ -26,14 +26,6 @@ pipeline {
             }
         }
 
-        stage('Terraform Validate') {
-            steps {
-                dir("${TF_DIR}") {
-                    sh 'terraform validate'
-                }
-            }
-        }
-
         stage('Terraform Plan') {
             steps {
                 dir("${TF_DIR}") {
