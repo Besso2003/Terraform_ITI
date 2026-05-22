@@ -117,6 +117,16 @@ resource "aws_instance" "jenkins" {
   iam_instance_profile        = aws_iam_instance_profile.jenkins.name
   associate_public_ip_address = true
 
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp3"
+    delete_on_termination = false
+
+    tags = {
+      Name = "jenkins-root-volume"
+    }
+  }
+
   user_data = <<-EOF
     #!/bin/bash
     dnf update -y
@@ -136,5 +146,5 @@ resource "aws_instance" "jenkins" {
 
   tags = { 
     Name = "jenkins-server" 
-   }
+  }
 }
