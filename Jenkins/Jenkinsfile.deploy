@@ -36,7 +36,7 @@ pipeline {
                             file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE')
                         ]) {
                             sh '''
-                                terraform plan -var-file=$TFVARS_FILE -out=tfplan -input=false
+                                terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
                             archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
