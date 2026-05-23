@@ -74,15 +74,7 @@ pipeline {
         stage('Configure EC2 with Ansible') {
             steps {
                 sh '''
-                echo "=== Debug workspace ==="
-                ls -R $WORKSPACE
-
-                echo "=== Finding inventory ==="
-                find $WORKSPACE -name "inventory.ini" 2>/dev/null
-                find $WORKSPACE -name "ssh.cfg" 2>/dev/null
-
-                echo "=== Moving to Ansible directory ==="
-                cd $WORKSPACE/Ansible || exit 1
+                cd $WORKSPACE/Terraform/Ansible
 
                 echo "=== Inventory ==="
                 cat inventory.ini
@@ -91,8 +83,10 @@ pipeline {
                 ansible app -i inventory.ini -m ping
 
                 echo "Running playbook..."
-                ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
-                '''
+                ansible-playbook -i inventory.ini \
+                -e "ansible_ssh_common_args='-F ./ssh.cfg'" \
+                $WORKSPACE/Ansible/playbook-jenkins-agent.yml
+            '''
             }
         }
     }
