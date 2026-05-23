@@ -71,6 +71,30 @@ pipeline {
             }
         }
 
+        stage('Configure EC2 with Ansible') {
+            steps {
+                dir("Ansible") {
+                    withCredentials([
+                        sshUserPrivateKey(
+                            credentialsId: 'ec2-ssh-key',
+                            keyFileVariable: 'SSH_KEY'
+                        )
+                    ]) {
+                         sh '''
+                         mkdir -p ~/.ssh
+                         cp $SSH_KEY ~/.ssh/bastion-key
+                         chmod 600 ~/.ssh/bastion-key
+                         
+                         echo "Testing connectivity..."
+                         ansible app -i inventory.ini -m ping
+                         echo "Running Ansible playbook..."
+                         ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
+                         '''
+                        }
+                }
+            }
+        }
+
     }
 
     post {
