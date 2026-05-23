@@ -48,14 +48,11 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
-                script {
-                    def plan = readFile("${TF_DIR}/tfplan.txt")
-                    input message: "Approve deployment for ${params.ENV}?\n\n${plan.take(2000)}"
-                }
-
+                echo "Auto approving deployment"
+                
                 dir("${TF_DIR}") {
                     sh '''
-                        terraform apply -auto-approve -input=false tfplan
+                    terraform apply -auto-approve -input=false tfplan
                     '''
                 }
             }
