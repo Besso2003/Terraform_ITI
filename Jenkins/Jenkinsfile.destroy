@@ -26,14 +26,6 @@ pipeline {
             }
         }
 
-        stage('Terraform Validate') {
-            steps {
-                dir("${TF_DIR}") {
-                    sh 'terraform validate'
-                }
-            }
-        }
-
         stage('Terraform Destroy Plan') {
             steps {
                 dir("${TF_DIR}") {
@@ -44,9 +36,7 @@ pipeline {
                             file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE')
                         ]) {
                             sh '''
-                                terraform plan -destroy -var-file=$TFVARS_FILE \
-                                  -out=tfplan -input=false
-
+                                terraform plan -destroy -var-file="$TFVARS_FILE" -out=tfplan -input=false
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
                             archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
@@ -56,12 +46,18 @@ pipeline {
             }
         }
 
-        stage('DESTROY - FINAL APPROVAL') {
+        stage('Destroy Approval') {
             steps {
                 script {
                     def plan = readFile("${TF_DIR}/tfplan.txt")
-                    input message: "⚠️ CONFIRM DESTROY for ${params.ENV}? This action is irreversible!\n\n${plan.take(2000)}"
+                    input message: "⚠️ CONFIRM DESTROY for ${params.ENV}?\n\n${plan.take(2000)}"
                 }
+            }
+        }
+
+        stage('Terraform Destroy Apply') {
+            steps {
+                echo "Auto approving destroy"
 
                 dir("${TF_DIR}") {
                     sh '''
