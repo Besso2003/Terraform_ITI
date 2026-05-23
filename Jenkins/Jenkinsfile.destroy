@@ -39,26 +39,22 @@ pipeline {
                                 terraform plan -destroy -var-file="$TFVARS_FILE" -out=tfplan -input=false
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
-                            archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
+                            archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: true
                         }
                     }
                 }
             }
         }
 
-        stage('Destroy Approval') {
+        stage('Destroy Approval (Auto)') {
             steps {
-                script {
-                    def plan = readFile("${TF_DIR}/tfplan.txt")
-                    input message: "⚠️ CONFIRM DESTROY for ${params.ENV}?\n\n${plan.take(2000)}"
-                }
+                echo "⚠️ Auto-approved destroy for ${params.ENV}"
+                echo "Proceeding without manual approval..."
             }
         }
 
         stage('Terraform Destroy Apply') {
             steps {
-                echo "Auto approving destroy"
-
                 dir("${TF_DIR}") {
                     sh '''
                         terraform apply -auto-approve -input=false tfplan
@@ -73,7 +69,7 @@ pipeline {
             echo "✅ Destroy pipeline completed successfully for ${params.ENV}."
         }
         failure {
-            echo "❌ Destroy pipeline failed. Check the console output for details."
+            echo "❌ Destroy pipeline failed. Check logs for details."
         }
         always {
             cleanWs()
