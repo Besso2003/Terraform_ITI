@@ -83,21 +83,23 @@ pipeline {
     }
 }
 
-        // stage('Configure EC2 with Ansible') {
-        //     steps {
-        //         sh '''
-        //         cd "$WORKSPACE/Ansible"
-        //         echo "=== Inventory ==="
-        //         cat inventory.ini
+        stage('Configure EC2 with Ansible') {
+            steps {
+                sh '''
+                cd $WORKSPACE/Terraform/Ansible
+                echo "=== Inventory ==="
+                cat inventory.ini
+ 
+                echo "Testing connectivity..."
+                ansible app -i inventory.ini -m ping
 
-        //         echo "Testing connectivity..."
-        //         ansible app -i inventory.ini -m ping
-
-        //         echo "Running playbook..."
-        //         ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
-        //         '''
-        //     }
-        // }
+                echo "Running playbook..."
+                ansible-playbook -i inventory.ini \
+                -e "ansible_ssh_common_args='-F ./ssh.cfg'" \
+                $WORKSPACE/Ansible/playbook-jenkins-agent.yml
+            '''
+            }
+        }
     }
 
     post {
