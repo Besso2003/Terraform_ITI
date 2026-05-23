@@ -72,20 +72,32 @@ pipeline {
         }
 
         stage('Configure EC2 with Ansible') {
-            steps {
-                sh '''
-                cd "$WORKSPACE/Ansible"
-                echo "=== Inventory ==="
-                cat inventory.ini
+    steps {
+        sh '''
+            echo "=== Finding inventory ==="
+            find $WORKSPACE -name "inventory.ini" 2>/dev/null
+            find $WORKSPACE -name "ssh.cfg" 2>/dev/null
+            ls -la $WORKSPACE/
+            ls -la $WORKSPACE/Ansible/ 2>/dev/null || echo "No Ansible dir in workspace"
+        '''
+    }
+}
 
-                echo "Testing connectivity..."
-                ansible app -i inventory.ini -m ping
+        // stage('Configure EC2 with Ansible') {
+        //     steps {
+        //         sh '''
+        //         cd "$WORKSPACE/Ansible"
+        //         echo "=== Inventory ==="
+        //         cat inventory.ini
 
-                echo "Running playbook..."
-                ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
-                '''
-            }
-        }
+        //         echo "Testing connectivity..."
+        //         ansible app -i inventory.ini -m ping
+
+        //         echo "Running playbook..."
+        //         ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
+        //         '''
+        //     }
+        // }
     }
 
     post {
