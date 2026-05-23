@@ -1,12 +1,12 @@
-- name: Configure Jenkins SSH Agent Node
+- name: Configure app EC2 as Jenkins agent
   hosts: app
   become: yes
 
   vars:
-    agent_dir: /home/ec2-user/jenkins
+    jenkins_home: /home/ec2-user/jenkins
 
   tasks:
-    - name: Update system packages
+    - name: Update all packages
       yum:
         name: "*"
         state: latest
@@ -16,18 +16,36 @@
         name: java-17-amazon-corretto
         state: present
 
-    - name: Create Jenkins working directory
+    - name: Install git
+      yum:
+        name: git
+        state: present
+
+    - name: Install Node.js 18
+      shell: |
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+        yum install -y nodejs
+      args:
+        creates: /usr/bin/node
+
+    - name: Create Jenkins agent working directory
       file:
-        path: "{{ agent_dir }}"
+        path: "{{ jenkins_home }}"
         state: directory
         owner: ec2-user
         group: ec2-user
         mode: "0755"
 
-    - name: Ensure ec2-user .ssh directory exists
+    - name: Ensure .ssh directory exists
       file:
         path: /home/ec2-user/.ssh
         state: directory
         owner: ec2-user
         group: ec2-user
         mode: "0700"
+
+    - name: Add Jenkins public key to authorized_keys
+      authorized_key:
+        user: ec2-user
+        state: present
+        key: "{{ lookup('file', '/var/jenkins_home/.ssh/bastion-key.pub') }}"
