@@ -73,18 +73,19 @@ pipeline {
 
         stage('Configure EC2 with Ansible') {
             steps {
-                dir("Ansible") {
-                    sh '''
-                    echo "Testing connectivity..."
-                    ansible app -i inventory.ini -m ping
+                sh '''
+                cd "$WORKSPACE/Ansible"
+                echo "=== Inventory ==="
+                cat inventory.ini
 
-                    echo "Running Ansible playbook..."
-                    ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
-                    '''
-                }
+                echo "Testing connectivity..."
+                ansible app -i inventory.ini -m ping
+
+                echo "Running playbook..."
+                ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
+                '''
             }
         }
-    }
 
     post {
         success {
