@@ -75,11 +75,11 @@ pipeline {
             steps {
                 dir("Ansible") {
                     sh '''
-                    cp $SSH_KEY /var/jenkins_home/.ssh/bastion-key
                     chmod 600 /var/jenkins_home/.ssh/bastion-key
                     
                     echo "Testing connectivity..."
                     ansible app -i inventory.ini -m ping
+                    
                     echo "Running Ansible playbook..."
                     ansible-playbook -i inventory.ini playbook-jenkins-agent.yml
                     '''
