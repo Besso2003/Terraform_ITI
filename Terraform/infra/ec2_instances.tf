@@ -16,6 +16,7 @@ resource "aws_instance" "app" {
   subnet_id              = module.network.private_subnet_ids["private-subnet-1"]
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   key_name               = aws_key_pair.main.key_name
+  private_ip             = var.app_private_ip
 
   tags = {
     Name = var.app_name

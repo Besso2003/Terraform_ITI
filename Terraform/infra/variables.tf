@@ -77,3 +77,8 @@ variable "public_key_path" {
   type        = string
   description = "Path to the public key file"
 }
+
+variable "app_private_ip" {
+  type        = string
+  description = "Fixed private IP for app EC2"
+}
