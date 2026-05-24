@@ -125,7 +125,6 @@ pipeline {
                     echo "Bastion: $BASTION_IP"
                     echo "App: $APP_IP"
 
-                    # Update SSH config
                     cat > /var/jenkins_home/.ssh/config << SSHEOF
 Host bastion
     HostName $BASTION_IP
@@ -144,26 +143,27 @@ SSHEOF
 
                     chmod 600 /var/jenkins_home/.ssh/config
 
-                    # Kill existing tunnel
                     pkill -f "L 2222" || true
                     sleep 2
 
-                    # Start tunnel fully detached
-                    nohup ssh -f -N -4 \
-                      -L 2222:${APP_IP}:22 \
-                      -i /var/jenkins_home/.ssh/bastion-key \
-                      -o StrictHostKeyChecking=no \
-                      -o UserKnownHostsFile=/dev/null \
-                      -o ServerAliveInterval=30 \
-                      -o ServerAliveCountMax=3 \
-                      ec2-user@${BASTION_IP} \
-                      > /var/jenkins_home/.ssh/tunnel.log 2>&1 &
+                    # Use bash explicitly for disown
+                    bash -c "
+                      nohup ssh -f -N -4 \
+                        -L 2222:${APP_IP}:22 \
+                        -i /var/jenkins_home/.ssh/bastion-key \
+                        -o StrictHostKeyChecking=no \
+                        -o UserKnownHostsFile=/dev/null \
+                        -o ServerAliveInterval=30 \
+                        -o ServerAliveCountMax=3 \
+                        ec2-user@${BASTION_IP} \
+                        > /var/jenkins_home/.ssh/tunnel.log 2>&1 &
+                      disown \$!
+                    "
 
-                    disown $!
                     sleep 3
 
                     netstat -tlnp | grep 2222 \
-                      && echo "Tunnel confirmed up" \
+                      && echo "Tunnel up" \
                       || echo "Tunnel failed"
                 '''
             }
