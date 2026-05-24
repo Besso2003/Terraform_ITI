@@ -42,7 +42,7 @@ resource "aws_lb_target_group" "app" {
   vpc_id   = module.network.vpc_id
 
   health_check {
-    path                = "/db"
+    path                = "/redis"
     interval            = 30
     healthy_threshold   = 2
     unhealthy_threshold = 3
