@@ -30,15 +30,22 @@ pipeline {
             steps {
                 dir("${TF_DIR}") {
                     script {
+
                         def tfvarsCred = (params.ENV == 'dev') ? 'dev-tfvars' : 'prod-tfvars'
 
                         withCredentials([
                             file(credentialsId: tfvarsCred, variable: 'TFVARS_FILE')
                         ]) {
+
                             sh '''
-                                terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
+                                terraform plan \
+                                  -var-file="$TFVARS_FILE" \
+                                  -out=tfplan \
+                                  -input=false
+
                                 terraform show -no-color tfplan > tfplan.txt
                             '''
+
                             archiveArtifacts artifacts: 'tfplan.txt', allowEmptyArchive: false
                         }
                     }
@@ -48,11 +55,15 @@ pipeline {
 
         stage('Terraform Apply') {
             steps {
+
                 echo "Auto approving deployment"
-                
+
                 dir("${TF_DIR}") {
                     sh '''
-                    terraform apply -auto-approve -input=false tfplan
+                        terraform apply \
+                          -auto-approve \
+                          -input=false \
+                          tfplan
                     '''
                 }
             }
@@ -63,8 +74,13 @@ pipeline {
                 dir("${TF_DIR}") {
                     sh '''
                         echo "=== ANSIBLE GENERATED FILES ==="
+
                         ls -R ../Ansible || true
+
+                        echo "=== inventory.ini ==="
                         cat ../Ansible/inventory.ini || true
+
+                        echo "=== ssh.cfg ==="
                         cat ../Ansible/ssh.cfg || true
                     '''
                 }
@@ -74,30 +90,87 @@ pipeline {
         stage('Configure EC2 with Ansible') {
             steps {
                 sh '''
-                cd $WORKSPACE/Terraform/Ansible
+                    cd $WORKSPACE/Terraform/Ansible
 
-                echo "=== Inventory ==="
-                cat inventory.ini
+                    echo "=== Inventory ==="
+                    cat inventory.ini
 
-                echo "Testing connectivity..."
-                ansible app -i inventory.ini -m ping
+                    echo "=== Testing Connectivity ==="
+                    ansible app -i inventory.ini -m ping
 
-                echo "Running playbook..."
-                ansible-playbook -i inventory.ini \
-                -e "ansible_ssh_common_args='-F ./ssh.cfg'" \
-                $WORKSPACE/Ansible/playbook-jenkins-agent.yml
-            '''
+                    echo "=== Running Playbook ==="
+
+                    ansible-playbook \
+                      -i inventory.ini \
+                      -e "ansible_ssh_common_args='-F ./ssh.cfg'" \
+                      $WORKSPACE/Ansible/playbook-jenkins-agent.yml
+                '''
+            }
+        }
+
+        stage('Setup SSH Tunnel') {
+            steps {
+                sh '''
+                    cd $WORKSPACE/Terraform/infra
+
+                    BASTION_IP=$(terraform output -raw bastion_public_ip)
+                    APP_IP=$(terraform output -raw app_private_ip)
+
+                    echo "Bastion: $BASTION_IP"
+                    echo "App: $APP_IP"
+
+                    echo "=== Updating SSH Config ==="
+
+                    cat > /var/jenkins_home/.ssh/config << SSHEOF
+Host bastion
+    HostName $BASTION_IP
+    User ec2-user
+    IdentityFile /var/jenkins_home/.ssh/bastion-key
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host 10.0.*.*
+    User ec2-user
+    IdentityFile /var/jenkins_home/.ssh/bastion-key
+    ProxyJump bastion
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+SSHEOF
+
+                    chmod 600 /var/jenkins_home/.ssh/config
+
+                    echo "=== Removing Old Tunnel ==="
+
+                    pkill -f "L 2222" || true
+                    sleep 2
+
+                    echo "=== Starting New Tunnel ==="
+
+                    ssh -f -N -4 \
+                      -L 2222:${APP_IP}:22 \
+                      -i /var/jenkins_home/.ssh/bastion-key \
+                      -o StrictHostKeyChecking=no \
+                      -o UserKnownHostsFile=/dev/null \
+                      -o ServerAliveInterval=30 \
+                      -o ServerAliveCountMax=3 \
+                      ec2-user@${BASTION_IP}
+
+                    echo "Tunnel up: localhost:2222 -> $BASTION_IP -> $APP_IP:22"
+                '''
             }
         }
     }
 
     post {
+
         success {
             echo "✅ Deployment pipeline completed successfully for ${params.ENV}."
         }
+
         failure {
             echo "❌ Deployment pipeline failed. Check the console output for details."
         }
+
         always {
             cleanWs()
         }
