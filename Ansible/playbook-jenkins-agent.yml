@@ -49,3 +49,14 @@
         user: ec2-user
         state: present
         key: "{{ lookup('file', '/var/jenkins_home/.ssh/bastion-key.pub') }}"
+    
+    - name: Install pm2 globally
+      shell: npm install -g pm2 --prefix /home/ec2-user/.npm-global
+      become: yes
+      become_user: ec2-user
+
+    - name: Add npm-global to PATH in bashrc
+      lineinfile:
+      path: /home/ec2-user/.bashrc
+      line: 'export PATH=$PATH:/home/ec2-user/.npm-global/bin'
+      state: present
