@@ -108,7 +108,7 @@ pipeline {
                     ansible-playbook \
                       -i inventory.ini \
                       -e "ansible_ssh_common_args='-F ./ssh.cfg'" \
-                      $WORKSPACE/Terraform/Ansible/playbook-jenkins-agent.yml
+                      $WORKSPACE/Ansible/playbook-jenkins-agent.yml
                 '''
             }
         }
