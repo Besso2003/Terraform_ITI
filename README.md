@@ -51,14 +51,14 @@ The project follows a two-layer architecture pattern that separates the CI/CD ma
 │                                                             │
 │  Public Subnets (AZ-a, AZ-b)                                │
 │  ┌──────────────┐    ┌──────────────────────────────────┐   │
-│  │  Bastion EC2 │    │     Application Load Balancer     │   │
+│  │  Bastion EC2 │    │     Application Load Balancer    │   │
 │  │  (SSH Proxy) │    │     (port 80 → app port 3000)    │   │
 │  └──────────────┘    └──────────────────────────────────┘   │
 │                                                             │
 │  Private Subnets (AZ-a, AZ-b)                               │
 │  ┌──────────────┐    ┌──────────┐    ┌──────────────────┐   │
 │  │   App EC2    │    │   RDS    │    │  ElastiCache     │   │
-│  │  (Node.js)  │    │  MySQL   │    │  Redis           │   │
+│  │  (Node.js)   │    │  MySQL   │    │  Redis           │   │
 │  │  Jenkins     │    │  port    │    │  port 6379       │   │
 │  │  Agent       │    │  3306    │    │                  │   │
 │  └──────────────┘    └──────────┘    └──────────────────┘   │
@@ -280,6 +280,7 @@ Go to **Manage Jenkins → Plugins → Available plugins**, install:
 - `SSH Credentials`
 
 **2.3 Add credentials:**
+![all credentials needed](docs/screenshots/05_Credentails.png)
 
 Go to **Manage Jenkins → Credentials → System → Global credentials → Add Credential**
 
@@ -291,6 +292,7 @@ Go to **Manage Jenkins → Credentials → System → Global credentials → Add
 | `rds-password` | Secret text | Your RDS password |
 
 **2.4 Add app EC2 as Jenkins node:**
+![app node slave](docs/screenshots/04_Nodes.png)
 
 Go to **Manage Jenkins → Nodes → New Node**:
 
@@ -311,6 +313,7 @@ Go to **Manage Jenkins → Nodes → New Node**:
 ---
 
 ### Step 3: Create Pipeline Jobs
+![Terraform Pipeline Success](docs/screenshots/02_Terraform_pipelines.png)
 
 Create three pipeline jobs in Jenkins, all pointing to `https://github.com/Besso2003/Terraform_ITI.git` on branch `*/master`:
 
@@ -445,17 +448,19 @@ Developer triggers Terraform-deploy
 ---
 
 ## Jenkins Pipelines
-![Terraform Pipeline Success](docs/screenshots/02_Terraform_pipelines.png)
 
 ### `Jenkinsfile.deploy`
+![Infra Deploy Success](docs/screenshots/08_Infra_deploy_Success.png)
 
 Parameterized pipeline with `ENV` choice (`dev` / `prod`). Uses environment-specific tfvars from Jenkins credentials. AWS authentication via IAM instance profile — no hardcoded credentials.
 
 ### `Jenkinsfile.destroy`
+![Infra Destroy Success](docs/screenshots/07_Infra_destroy_Success.png)
 
 Parameterized destroy pipeline. Runs `terraform plan -destroy` first, shows the plan, requires manual approval before executing destroy. Jenkins server is unaffected since it lives in a separate bootstrap VPC.
 
 ### `Jenkinsfile.app`
+![app Success](docs/screenshots/06_App_deploy_Success.png)
 
 Runs on the `app` Jenkins agent (app EC2 in private subnet). Receives all connection parameters from the infra pipeline via build parameters — zero hardcoded values. Uses `withCredentials` for the RDS password so it never appears in logs.
 
