@@ -445,7 +445,7 @@ Developer triggers Terraform-deploy
 ---
 
 ## Jenkins Pipelines
-![Terraform Pipeline Success](docs/screenshots/02_Terraform pipelines.png)
+![Terraform Pipeline Success](docs/screenshots/02_Terraform_pipelines.png)
 
 ### `Jenkinsfile.deploy`
 
@@ -551,5 +551,5 @@ The current setup uses a single app EC2 instance registered as a Jenkins agent. 
 
 ## Author
 
-**Bassant Ali Kamal**  
+**Bassant Ali Kamal** - DevOps Engineering  
 ITI Infrastructure Project
