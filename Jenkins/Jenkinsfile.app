@@ -96,7 +96,7 @@ pipeline {
         }
 
         stage('Smoke Test via ALB') {
-            steps {s
+            steps {
 
                 sh """
                     echo "=== Waiting for ALB health check to pass ==="
