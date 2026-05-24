@@ -18,6 +18,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir("${TF_DIR}") {
+
                     sh """
                         terraform init -reconfigure \
                           -backend-config="key=${params.ENV}/terraform.tfstate"
@@ -29,6 +30,7 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir("${TF_DIR}") {
+
                     script {
 
                         def tfvarsCred = (params.ENV == 'dev') ? 'dev-tfvars' : 'prod-tfvars'
@@ -59,6 +61,7 @@ pipeline {
                 echo "Auto approving deployment"
 
                 dir("${TF_DIR}") {
+
                     sh '''
                         terraform apply \
                           -auto-approve \
@@ -72,6 +75,7 @@ pipeline {
         stage('Verify Ansible Files') {
             steps {
                 dir("${TF_DIR}") {
+
                     sh '''
                         echo "=== ANSIBLE GENERATED FILES ==="
 
@@ -89,6 +93,7 @@ pipeline {
 
         stage('Configure EC2 with Ansible') {
             steps {
+
                 sh '''
                     cd $WORKSPACE/Terraform/Ansible
 
@@ -110,6 +115,7 @@ pipeline {
 
         stage('Setup SSH Tunnel') {
             steps {
+
                 sh '''
                     cd $WORKSPACE/Terraform/infra
 
@@ -139,23 +145,30 @@ SSHEOF
 
                     chmod 600 /var/jenkins_home/.ssh/config
 
-                    echo "=== Removing Old Tunnel ==="
+                    echo "=== Killing Existing Tunnel ==="
 
-                    pkill -f "L 2222" || true
+                    pkill -f "2222:${APP_IP}:22" || true
                     sleep 2
 
                     echo "=== Starting New Tunnel ==="
 
-                    ssh -f -N -4 \
+                    nohup ssh -f -N -4 \
                       -L 2222:${APP_IP}:22 \
                       -i /var/jenkins_home/.ssh/bastion-key \
                       -o StrictHostKeyChecking=no \
                       -o UserKnownHostsFile=/dev/null \
                       -o ServerAliveInterval=30 \
                       -o ServerAliveCountMax=3 \
-                      ec2-user@${BASTION_IP}
+                      ec2-user@${BASTION_IP} \
+                      > /var/jenkins_home/.ssh/tunnel.log 2>&1 &
 
-                    echo "Tunnel up: localhost:2222 -> $BASTION_IP -> $APP_IP:22"
+                    sleep 3
+
+                    echo "=== Verifying Tunnel ==="
+
+                    netstat -tlnp | grep 2222 \
+                      && echo "Tunnel confirmed up" \
+                      || echo "Tunnel failed to start"
                 '''
             }
         }
