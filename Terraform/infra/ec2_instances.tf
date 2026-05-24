@@ -5,6 +5,12 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids = [aws_security_group.bastion_sg.id]
   key_name               = aws_key_pair.main.key_name
 
+  root_block_device {
+    volume_size           = 10
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
   tags = {
     Name = var.bastion_name
   }
@@ -17,6 +23,12 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [aws_security_group.app_sg.id]
   key_name               = aws_key_pair.main.key_name
   private_ip             = var.app_private_ip
+
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
 
   tags = {
     Name = var.app_name

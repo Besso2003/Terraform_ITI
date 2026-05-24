@@ -125,8 +125,7 @@ pipeline {
                     echo "Bastion: $BASTION_IP"
                     echo "App: $APP_IP"
 
-                    echo "=== Updating SSH Config ==="
-
+                    # Update SSH config
                     cat > /var/jenkins_home/.ssh/config << SSHEOF
 Host bastion
     HostName $BASTION_IP
@@ -145,13 +144,11 @@ SSHEOF
 
                     chmod 600 /var/jenkins_home/.ssh/config
 
-                    echo "=== Killing Existing Tunnel ==="
-
-                    pkill -f "2222:${APP_IP}:22" || true
+                    # Kill existing tunnel
+                    pkill -f "L 2222" || true
                     sleep 2
 
-                    echo "=== Starting New Tunnel ==="
-
+                    # Start tunnel fully detached
                     nohup ssh -f -N -4 \
                       -L 2222:${APP_IP}:22 \
                       -i /var/jenkins_home/.ssh/bastion-key \
@@ -162,14 +159,52 @@ SSHEOF
                       ec2-user@${BASTION_IP} \
                       > /var/jenkins_home/.ssh/tunnel.log 2>&1 &
 
+                    disown $!
                     sleep 3
-
-                    echo "=== Verifying Tunnel ==="
 
                     netstat -tlnp | grep 2222 \
                       && echo "Tunnel confirmed up" \
-                      || echo "Tunnel failed to start"
+                      || echo "Tunnel failed"
                 '''
+            }
+        }
+
+        stage('Deploy App') {
+            steps {
+
+                sh '''
+                    cd $WORKSPACE/Terraform/infra
+
+                    RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
+                    REDIS_ENDPOINT=$(terraform output -raw redis_endpoint)
+
+                    echo "RDS: $RDS_ENDPOINT"
+                    echo "Redis: $REDIS_ENDPOINT"
+                '''
+
+                script {
+
+                    def rds = sh(
+                        script: "cd $WORKSPACE/Terraform/infra && terraform output -raw rds_endpoint",
+                        returnStdout: true
+                    ).trim()
+
+                    def redis = sh(
+                        script: "cd $WORKSPACE/Terraform/infra && terraform output -raw redis_endpoint",
+                        returnStdout: true
+                    ).trim()
+
+                    // Trigger app pipeline with outputs as parameters
+                    build job: 'app-deploy',
+                        parameters: [
+                            string(name: 'RDS_HOSTNAME', value: rds.split(':')[0]),
+                            string(name: 'RDS_PORT', value: '3306'),
+                            string(name: 'REDIS_HOSTNAME', value: redis),
+                            string(name: 'REDIS_PORT', value: '6379'),
+                            string(name: 'ENV', value: params.ENV)
+                        ],
+                        wait: true
+                }
             }
         }
     }
