@@ -550,5 +550,5 @@ The current setup uses a single app EC2 instance registered as a Jenkins agent. 
 
 ## Author
 
-**Bassant Ali Kamal** - DevOps Engineering
+**Bassant Ali Kamal** - DevOps Engineering  
 ITI Infrastructure Project
