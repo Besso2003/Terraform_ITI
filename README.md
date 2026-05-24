@@ -360,6 +360,7 @@ Deploy App             ← triggers app-deploy pipeline with Terraform outputs
 ---
 
 ### Step 5: Verify Deployment
+![Redis alb Success](docs/screenshots/03_Redis_check.png)
 
 After the pipeline succeeds, test your endpoints:
 
