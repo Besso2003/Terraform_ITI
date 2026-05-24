@@ -108,7 +108,7 @@ pipeline {
                     ansible-playbook \
                       -i inventory.ini \
                       -e "ansible_ssh_common_args='-F ./ssh.cfg'" \
-                      $WORKSPACE/Ansible/playbook-jenkins-agent.yml
+                      $WORKSPACE/Terraform/Ansible/playbook-jenkins-agent.yml
                 '''
             }
         }
@@ -146,7 +146,6 @@ SSHEOF
                     pkill -f "L 2222" || true
                     sleep 2
 
-                    # Use bash explicitly for disown
                     bash -c "
                       nohup ssh -f -N -4 \
                         -L 2222:${APP_IP}:22 \
@@ -172,16 +171,6 @@ SSHEOF
         stage('Deploy App') {
             steps {
 
-                sh '''
-                    cd $WORKSPACE/Terraform/infra
-
-                    RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-                    REDIS_ENDPOINT=$(terraform output -raw redis_endpoint)
-
-                    echo "RDS: $RDS_ENDPOINT"
-                    echo "Redis: $REDIS_ENDPOINT"
-                '''
-
                 script {
 
                     def rds = sh(
@@ -194,13 +183,22 @@ SSHEOF
                         returnStdout: true
                     ).trim()
 
-                    // Trigger app pipeline with outputs as parameters
+                    def alb = sh(
+                        script: "cd $WORKSPACE/Terraform/infra && terraform output -raw alb_dns_name",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "RDS: ${rds}"
+                    echo "Redis: ${redis}"
+                    echo "ALB: ${alb}"
+
                     build job: 'app-deploy',
                         parameters: [
                             string(name: 'RDS_HOSTNAME', value: rds.split(':')[0]),
                             string(name: 'RDS_PORT', value: '3306'),
                             string(name: 'REDIS_HOSTNAME', value: redis),
                             string(name: 'REDIS_PORT', value: '6379'),
+                            string(name: 'ALB_DNS', value: alb),
                             string(name: 'ENV', value: params.ENV)
                         ],
                         wait: true

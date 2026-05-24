@@ -6,6 +6,7 @@ pipeline {
         string(name: 'RDS_PORT', defaultValue: '3306', description: 'RDS port')
         string(name: 'REDIS_HOSTNAME', defaultValue: '', description: 'Redis endpoint')
         string(name: 'REDIS_PORT', defaultValue: '6379', description: 'Redis port')
+        string(name: 'ALB_DNS', defaultValue: '', description: 'ALB DNS name')
         string(name: 'ENV', defaultValue: 'dev', description: 'Environment')
     }
 
@@ -91,6 +92,32 @@ pipeline {
                         curl -s http://localhost:3000/redis
                     """
                 }
+            }
+        }
+
+        stage('Smoke Test via ALB') {
+            steps {
+
+                sh """
+                    echo "=== Waiting for ALB health check to pass ==="
+                    sleep 30
+
+                    echo "=== Testing via ALB: ${params.ALB_DNS} ==="
+
+                    DB_RESPONSE=\$(curl -s http://${params.ALB_DNS}/db)
+                    REDIS_RESPONSE=\$(curl -s http://${params.ALB_DNS}/redis)
+
+                    echo "DB response: \$DB_RESPONSE"
+                    echo "Redis response: \$REDIS_RESPONSE"
+
+                    echo "\$DB_RESPONSE" | grep -q "successful" \
+                      && echo "✅ DB endpoint OK" \
+                      || (echo "❌ DB endpoint FAILED" && exit 1)
+
+                    echo "\$REDIS_RESPONSE" | grep -q "connected" \
+                      && echo "✅ Redis endpoint OK" \
+                      || (echo "❌ Redis endpoint FAILED" && exit 1)
+                """
             }
         }
     }
