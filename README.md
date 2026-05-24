@@ -1,5 +1,5 @@
 # AWS Infrastructure CI/CD Pipeline
-
+![Terraform Ansible CI/CD](docs/screenshots/Terraform_Ansible_Jenkins.png)
 A fully automated AWS infrastructure provisioning and application deployment system built with Terraform, Jenkins, and Ansible. The project provisions a complete AWS environment including networking, compute, database, caching, and load balancing — all managed through Jenkins CI/CD pipelines.
 
 ---
@@ -172,6 +172,8 @@ The Jenkins server is intentionally kept in a separate VPC from the infrastructu
 | Jenkins SG | Inbound 8080 and 22 from your IP only |
 
 ### Notifications
+![email](docs/screenshots/09_email.png)
+
 Lambda function triggered by S3 state file changes — sends email via SES when Terraform state is updated.
 
 ---
