@@ -444,6 +444,7 @@ Developer triggers Terraform-deploy
 ---
 
 ## Jenkins Pipelines
+![Terraform Pipeline Success](docs/screenshots/02_Terraform pipelines.png)
 
 ### `Jenkinsfile.deploy`
 
