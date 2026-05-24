@@ -20,3 +20,11 @@ output "bastion_public_ip" {
 output "app_private_ip" {
   value = aws_instance.app.private_ip
 }
+
+output "rds_endpoint" {
+  value = module.rds.rds_endpoint
+}
+
+output "redis_endpoint" {
+  value = module.redis.redis_endpoint
+}
